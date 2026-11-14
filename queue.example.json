@@ -1,0 +1,17 @@
+[
+  {
+    "name": "developer_workspace",
+    "src": "~/projects/my-workspace",
+    "category": "projects_archive"
+  },
+  {
+    "name": "data_models",
+    "src": "~/models/weights",
+    "category": "models_archive"
+  },
+  {
+    "name": "system_toolchains",
+    "src": "~/.local/share/toolchains",
+    "category": "sdks_archive"
+  }
+]

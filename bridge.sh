@@ -1,15 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Enterprise Fast Vault Streamer
 set -e
 
-DEST_BASE="ai_vault:AI_VAULT"
-TMPDIR="/tmp/vault_pack"
+DEST_BASE="${VAULT_DEST_BASE:-ai_vault:AI_VAULT}"
+TMPDIR="${VAULT_BUFFER_DIR:-/tmp/vault_pack}"
 mkdir -p "$TMPDIR"
 
 stream_payload() {
     SRC="$1"
     NAME="$2"
-    CATEGORY="$3"
+    CATEGORY="${3:-default_archive}"
     
     if [ -e "$SRC" ]; then
         ZST="$TMPDIR/${NAME}.tar.zst"
@@ -24,6 +24,8 @@ stream_payload() {
         echo "[BRIDGE] Verifying and cleaning local buffer..."
         rm -f "$ZST"
         echo "[BRIDGE] Completed $NAME successfully."
+    else
+        echo "[BRIDGE] Skipping missing path: $SRC"
     fi
 }
 
