@@ -46,7 +46,8 @@ class TestFastVaultEngine(unittest.TestCase):
         self.assertEqual(expected, computed)
 
     def test_build_and_verify_archive(self):
-        out_archive = os.path.join(self.buffer_dir, "sample.tar.gz")
+        ext = ".tar.zst" if shutil.which("zstd") else ".tar.gz"
+        out_archive = os.path.join(self.buffer_dir, f"sample{ext}")
         meta = self.engine.build_archive(self.workspace, out_archive)
 
         self.assertTrue(os.path.exists(out_archive))
@@ -58,8 +59,18 @@ class TestFastVaultEngine(unittest.TestCase):
         self.assertTrue(ver["verified"])
         self.assertEqual(ver["size_bytes"], meta["size_bytes"])
 
+    def test_build_and_verify_gzip_fallback(self):
+        out_archive = os.path.join(self.buffer_dir, "sample_fallback.tar.gz")
+        meta = self.engine.build_archive(self.workspace, out_archive)
+
+        self.assertTrue(os.path.exists(out_archive))
+        self.assertGreater(meta["size_bytes"], 0)
+        ver = self.engine.verify_archive(out_archive, expected_sha256=meta["sha256"])
+        self.assertTrue(ver["verified"])
+
     def test_verify_detects_checksum_mismatch(self):
-        out_archive = os.path.join(self.buffer_dir, "sample_mismatch.tar.gz")
+        ext = ".tar.zst" if shutil.which("zstd") else ".tar.gz"
+        out_archive = os.path.join(self.buffer_dir, f"sample_mismatch{ext}")
         self.engine.build_archive(self.workspace, out_archive)
 
         fake_hash = "0" * 64

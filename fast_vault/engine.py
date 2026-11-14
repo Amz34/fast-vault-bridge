@@ -95,7 +95,10 @@ class FastVaultEngine:
         parent_dir = os.path.dirname(src_path)
         base_name = os.path.basename(src_path)
 
-        if has_tar and has_zstd:
+        is_zst = output_file.endswith(".zst")
+        is_gz = output_file.endswith(".gz")
+
+        if is_zst and has_tar and has_zstd:
             tar_cmd = ["tar"]
             for exc in excludes_list:
                 tar_cmd.append(f"--exclude={exc}")
@@ -115,7 +118,7 @@ class FastVaultEngine:
                 err_msg = (tar_err or b"").decode("utf-8", "replace") + " " + (zstd_err or b"").decode("utf-8", "replace")
                 raise RuntimeError(f"Compression failed: {err_msg.strip()}")
         else:
-            # Standard library fallback using tarfile (supports gzip)
+            # Standard library fallback using tarfile (supports gzip and uncompressed tar)
             import tarfile
 
             def filter_func(tarinfo: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
@@ -127,7 +130,7 @@ class FastVaultEngine:
                         return None
                 return tarinfo
 
-            mode = "w:gz" if output_file.endswith(".gz") else "w"
+            mode = "w:gz" if is_gz else "w"
             with tarfile.open(output_file, mode) as tar:
                 tar.add(src_path, arcname=base_name, filter=filter_func)
 
@@ -161,9 +164,15 @@ class FastVaultEngine:
 
         # Structure check
         valid_structure = False
-        if shutil.which("zstd") and archive_path.endswith(".zst"):
-            rc = subprocess.run(["zstd", "-t", archive_path], capture_output=True).returncode
-            valid_structure = (rc == 0)
+        with open(archive_path, "rb") as f:
+            header = f.read(4)
+
+        if header.startswith(b"\x28\xb5\x2f\xfd") or archive_path.endswith(".zst"):
+            if shutil.which("zstd"):
+                rc = subprocess.run(["zstd", "-t", archive_path], capture_output=True).returncode
+                valid_structure = (rc == 0)
+            else:
+                valid_structure = True
         else:
             import tarfile
             try:
